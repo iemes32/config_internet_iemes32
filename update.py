@@ -12,15 +12,24 @@ TITLE = " FREE GOVNO-VPN by iemes32"          # до 25 символов
 DESCRIPTION = "Обновляется автоматически. Автор хочет только иметь бесплатный vpn, если вы имеете конфиги для happ кидайте пж сюда --> Discord iemes32_of "  # до 200 символов
 
 def fetch_with_retry(url, retries=3, delay=10):
-    """Пытается получить данные с повторными попытками при ошибках."""
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*"
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Referer": "https://sub.freezenet.ru/",
+        "Origin": "https://sub.freezenet.ru",
+        "Connection": "keep-alive",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
     }
+    session = requests.Session()
+    session.headers.update(headers)
+
     for attempt in range(retries):
         try:
-            resp = requests.get(url, timeout=30, headers=headers)
-            resp.raise_for_status()  # Выбросит исключение при 4xx/5xx
+            resp = session.get(url, timeout=30)
+            resp.raise_for_status()
             return resp
         except requests.exceptions.RequestException as e:
             print(f"Попытка {attempt+1} не удалась: {e}")
@@ -28,17 +37,14 @@ def fetch_with_retry(url, retries=3, delay=10):
                 print(f"Повтор через {delay} секунд...")
                 time.sleep(delay)
             else:
-                raise  # после всех попыток выбрасываем исключение
+                raise
 
 def fetch_and_update():
     try:
         resp = fetch_with_retry(SOURCE_URL)
-
-        # Показываем первые 200 символов для диагностики
         print("Ответ сервера (первые 200 символов):")
         print(resp.text[:200])
 
-        # Пытаемся распарсить JSON
         try:
             data = resp.json()
         except json.JSONDecodeError:
@@ -53,7 +59,6 @@ def fetch_and_update():
             print("Файл subscription.json создан (как сырой текст).")
             return
 
-        # Если JSON — обрабатываем
         if isinstance(data, list):
             servers = data
         elif isinstance(data, dict):
@@ -78,10 +83,8 @@ def fetch_and_update():
 
     except Exception as e:
         print(f"Критическая ошибка: {e}")
-        # Создаём файл-заглушку, чтобы не ломать git
         with open("subscription.json", "w", encoding="utf-8") as f:
             json.dump({"error": str(e)}, f)
-        # Возвращаем код ошибки, чтобы workflow упал
         exit(1)
 
 if __name__ == "__main__":
