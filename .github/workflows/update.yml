@@ -21,10 +21,12 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run update script
-        env:
-          SOURCE_URL: ${{ secrets.SOURCE_URL }}
-        run: python update.py
+- name: Run update script
+  env:
+    SOURCE_URL: ${{ secrets.SOURCE_URL }}
+    HTTP_PROXY: ${{ secrets.PROXY_URL }}
+    HTTPS_PROXY: ${{ secrets.PROXY_URL }}
+  run: python update.py
 
       - name: Commit and push changes
         env:
