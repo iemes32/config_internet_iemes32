@@ -2,8 +2,8 @@ name: Обновление подписки
 
 on:
   schedule:
-    - cron: '0 */3 * * *'   
-  workflow_dispatch:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:   # <-- эта строчка даёт кнопку ручного запуска
 
 jobs:
   update:
