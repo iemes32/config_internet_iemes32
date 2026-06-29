@@ -27,16 +27,16 @@ jobs:
         run: python update.py
 
       - name: Commit and push changes
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -f subscription.json ]; then
-            git add subscription.json
-            git diff --staged --quiet || git commit -m "Автоматическое обновление подписки [skip ci]"
-            git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git HEAD:main
-          else
-            echo "Файл subscription.json не найден, пропускаем коммит."
-            exit 1
-          fi
+   env:
+    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  run: |
+    git config user.name "github-actions[bot]"
+    git config user.email "github-actions[bot]@users.noreply.github.com"
+    if [ -f subscription.json ]; then
+      git add subscription.json
+      git diff --staged --quiet || git commit -m "Автоматическое обновление подписки [skip ci]"
+      git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git HEAD:main
+    else
+      echo "Файл subscription.json не найден, пропускаем коммит."
+      exit 1
+    fi
