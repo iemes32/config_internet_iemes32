@@ -1,1 +1,1 @@
-# config_internet_iemes32
+# Это тип конфиги, по вопросам пишите в дс iemes32_of
