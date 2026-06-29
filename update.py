@@ -3,6 +3,7 @@
 import json
 import requests
 import os   
+import time
 
 SOURCE_URL = os.environ.get("SOURCE_URL")
 if not SOURCE_URL:
@@ -10,16 +11,30 @@ if not SOURCE_URL:
 TITLE = " FREE GOVNO-VPN by iemes32"          # до 25 символов
 DESCRIPTION = "Обновляется автоматически. Автор хочет только иметь бесплатный vpn, если вы имеете конфиги для happ кидайте пж сюда --> Discord iemes32_of "  # до 200 символов
 
+def fetch_with_retry(url, retries=3, delay=10):
+    """Пытается получить данные с повторными попытками при ошибках."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*"
+    }
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, timeout=30, headers=headers)
+            resp.raise_for_status()  # Выбросит исключение при 4xx/5xx
+            return resp
+        except requests.exceptions.RequestException as e:
+            print(f"Попытка {attempt+1} не удалась: {e}")
+            if attempt < retries - 1:
+                print(f"Повтор через {delay} секунд...")
+                time.sleep(delay)
+            else:
+                raise  # после всех попыток выбрасываем исключение
+
 def fetch_and_update():
     try:
-        # Добавляем заголовки, чтобы сервер думал, что запрос от браузера
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        resp = requests.get(SOURCE_URL, timeout=30, headers=headers)
-        resp.raise_for_status()
+        resp = fetch_with_retry(SOURCE_URL)
 
-        # Показываем первые 200 символов ответа для диагностики (в логах)
+        # Показываем первые 200 символов для диагностики
         print("Ответ сервера (первые 200 символов):")
         print(resp.text[:200])
 
@@ -27,9 +42,7 @@ def fetch_and_update():
         try:
             data = resp.json()
         except json.JSONDecodeError:
-            # Если не JSON, возможно, это Clash-конфиг или просто текст
-            print("Ответ не является JSON. Сохраняем как текст.")
-            # Для простоты сохраняем как есть, но можно адаптировать под парсинг Clash
+            print("Ответ не является JSON. Сохраняем как сырой текст.")
             subscription = {
                 "profile-title": TITLE,
                 "profile-description": DESCRIPTION,
@@ -54,7 +67,6 @@ def fetch_and_update():
             "servers": servers
         }
 
-        # Проверка длины
         if len(TITLE) > 25 or len(DESCRIPTION) > 200:
             print("Ошибка: название или описание слишком длинные.")
             return
@@ -65,7 +77,12 @@ def fetch_and_update():
         print(f"Файл subscription.json обновлён. Найдено серверов: {len(servers)}")
 
     except Exception as e:
-        print(f"Ошибка: {e}")
+        print(f"Критическая ошибка: {e}")
+        # Создаём файл-заглушку, чтобы не ломать git
+        with open("subscription.json", "w", encoding="utf-8") as f:
+            json.dump({"error": str(e)}, f)
+        # Возвращаем код ошибки, чтобы workflow упал
+        exit(1)
 
 if __name__ == "__main__":
     fetch_and_update()
